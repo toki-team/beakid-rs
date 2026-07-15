@@ -1,0 +1,23 @@
+[package]
+name = "beakid"
+version = "0.3.0"
+edition = "2021"
+description = "Snowflake-like 64-bit unique ID generator with PostgreSQL BIGINT-friendly i64 IDs."
+rust-version = "1.75.0"
+license = "MIT"
+readme = "README.md"
+keywords = ["id", "snowflake", "unique", "bigint", "postgres"]
+categories = ["data-structures", "database"]
+repository = "https://github.com/toki-team/beakid-rs"
+homepage = "https://github.com/toki-team/beakid-rs/tree/main/beakid"
+
+[dependencies]
+tokio = { version = "1", features = ["time"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "time",
+] }
