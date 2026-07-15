@@ -10,6 +10,7 @@ keywords = ["id", "snowflake", "unique", "bigint", "postgres"]
 categories = ["data-structures", "database"]
 repository = "https://github.com/toki-team/beakid-rs"
 homepage = "https://github.com/toki-team/beakid-rs"
+include = ["src/**/*.rs", "README.md", "README.ru.md", "LICENSE"]
 
 [dependencies]
 tokio = { version = "1", features = ["time"] }
