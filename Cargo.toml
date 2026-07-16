@@ -1,6 +1,6 @@
 [package]
 name = "beakid"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "Snowflake-like 64-bit unique ID generator with PostgreSQL BIGINT-friendly i64 IDs."
 rust-version = "1.75.0"
@@ -14,6 +14,7 @@ include = ["src/**/*.rs", "README.md", "README.ru.md", "LICENSE"]
 
 [dependencies]
 tokio = { version = "1", features = ["time"] }
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = [

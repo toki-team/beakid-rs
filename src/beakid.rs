@@ -1,10 +1,12 @@
+use serde::{Deserialize, Serialize};
+
 const TIMESTAMP_SHIFT: u8 = 22;
 const SEQUENCE_SHIFT: u8 = 10;
 const TIMESTAMP_MASK: i64 = (1 << 41) - 1;
 const SEQUENCE_MASK: i64 = (1 << 12) - 1;
 const WORKER_ID_MASK: i64 = (1 << 10) - 1;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BeakId(i64);
 
 impl BeakId {
