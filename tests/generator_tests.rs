@@ -1,6 +1,7 @@
-use beakid::{BeakId, BeakIdGenerator};
+use beakid::{Base62ParseError, BeakId, BeakIdGenerator};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashSet;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const EPOCH_MS: i64 = 1_750_000_000_000;
@@ -203,6 +204,45 @@ async fn display_non_empty() {
     let id = gen.next_id().await;
     let s = format!("{}", id);
     assert!(!s.is_empty());
+}
+
+#[tokio::test]
+async fn base62_roundtrip() {
+    let gen = make_generator(0);
+    let id = gen.next_id().await;
+    let encoded = id.to_base62();
+    let decoded = BeakId::from_base62(&encoded).unwrap();
+
+    assert_eq!(decoded, id);
+    assert_eq!(id.base62(), encoded);
+}
+
+#[test]
+fn base62_decodes_known_values() {
+    assert_eq!(BeakId::from_base62("0").unwrap().raw(), 0);
+    assert_eq!(BeakId::from_base62("10").unwrap().raw(), 62);
+    assert_eq!(BeakId::from_base62("AzL8n0Y58m7").unwrap().raw(), i64::MAX);
+}
+
+#[test]
+fn base62_rejects_empty_string() {
+    assert_eq!(BeakId::from_base62(""), Err(Base62ParseError::Empty));
+}
+
+#[test]
+fn base62_rejects_invalid_character() {
+    assert_eq!(
+        BeakId::from_base62("abc-def"),
+        Err(Base62ParseError::InvalidCharacter('-'))
+    );
+}
+
+#[test]
+fn base62_rejects_overflow() {
+    assert_eq!(
+        BeakId::from_base62("zzzzzzzzzzz"),
+        Err(Base62ParseError::Overflow)
+    );
 }
 
 // ========== BeakId ordering logic ==========

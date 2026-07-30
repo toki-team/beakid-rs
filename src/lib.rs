@@ -1,5 +1,5 @@
 mod beakid;
-pub use beakid::BeakId;
+pub use beakid::{Base62ParseError, BeakId};
 
 mod generator;
 pub use generator::BeakIdGenerator;
