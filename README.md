@@ -73,19 +73,7 @@ let now_ms = /* timestamp obtained elsewhere */;
 let id = generator.next_id_with_timestamp(now_ms).await;
 ```
 
-The `now` parameter is **milliseconds since the generator's custom epoch**:
-
-```rust
-use std::time::{SystemTime, UNIX_EPOCH};
-
-fn relative_now_ms(epoch: SystemTime) -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64
-        - epoch.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
-}
-```
+The `unix_ms` parameter is a **regular Unix timestamp in milliseconds** (as returned by `SystemTime::now()`); the generator converts it to its own epoch internally.
 
 ### Multi-instance setup
 

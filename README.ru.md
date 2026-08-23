@@ -73,19 +73,7 @@ let now_ms = /* timestamp, полученный ранее */;
 let id = generator.next_id_with_timestamp(now_ms).await;
 ```
 
-Параметр `now` — это **миллисекунды от кастомной эпохи генератора**:
-
-```rust
-use std::time::{SystemTime, UNIX_EPOCH};
-
-fn relative_now_ms(epoch: SystemTime) -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64
-        - epoch.duration_since(UNIX_EPOCH).unwrap().as_millis() as i64
-}
-```
+Параметр `unix_ms` — это **обычный Unix-timestamp в миллисекундах** (как возвращает `SystemTime::now()`); приведение к эпохе генератора выполняется внутри.
 
 ### Настройка нескольких экземпляров
 

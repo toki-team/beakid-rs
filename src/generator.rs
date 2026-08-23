@@ -18,9 +18,11 @@ pub struct BeakIdGenerator {
 
 impl BeakIdGenerator {
     pub fn new(worker_id: u16, epoch: SystemTime, window_size: Duration) -> Self {
+        assert!(worker_id <= 1023, "worker_id must fit 10 bits (0..=1023)");
+
         let epoch_ms = epoch
             .duration_since(UNIX_EPOCH)
-            .unwrap_or(Duration::ZERO)
+            .expect("epoch must not be earlier than 1970 (UNIX_EPOCH)")
             .as_millis() as i64;
 
         let window_size_ms = window_size.as_millis() as i64;
@@ -37,11 +39,16 @@ impl BeakIdGenerator {
     }
 
     pub async fn next_id(&self) -> BeakId {
-        let now = now_ms(self.epoch_ms);
-        self.next_id_with_timestamp(now).await
+        let unix_ms = now_unix_ms();
+        self.next_id_with_timestamp(unix_ms).await
     }
 
-    pub async fn next_id_with_timestamp(&self, now: i64) -> BeakId {
+    /// # Arguments
+    ///
+    /// `unix_ms` — absolute Unix timestamp in milliseconds (not relative to
+    /// the generator epoch); converted internally.
+    pub async fn next_id_with_timestamp(&self, unix_ms: i64) -> BeakId {
+        let now = unix_ms - self.epoch_ms;
         let old = self.id.fetch_add(1, Ordering::Relaxed);
         let old_ts = (old >> TIMESTAMP_SHIFT) & TIMESTAMP_MASK;
 
@@ -74,10 +81,13 @@ fn advance(id: &AtomicI64, now_ms: i64, worker_id: i64) {
     }
 }
 
-fn now_ms(epoch_ms: i64) -> i64 {
+fn now_unix_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or(Duration::ZERO)
         .as_millis() as i64
-        - epoch_ms
+}
+
+fn now_ms(epoch_ms: i64) -> i64 {
+    now_unix_ms() - epoch_ms
 }

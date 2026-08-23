@@ -14,9 +14,9 @@ fn make_generator(worker_id: u16) -> BeakIdGenerator {
     BeakIdGenerator::new(worker_id, test_epoch(), Duration::from_secs(1))
 }
 
-fn relative_now() -> i64 {
+fn unix_now() -> i64 {
     SystemTime::now()
-        .duration_since(test_epoch())
+        .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_millis() as i64
 }
@@ -67,9 +67,9 @@ async fn worker_id_max_1023() {
 #[tokio::test]
 async fn timestamp_roughly_matches_now() {
     let gen = make_generator(0);
-    let before = relative_now();
+    let before = unix_now() - EPOCH_MS;
     let id = gen.next_id().await;
-    let after = relative_now();
+    let after = unix_now() - EPOCH_MS;
     let ts = id.timestamp();
     assert!(
         ts >= before - 1,
@@ -250,7 +250,7 @@ fn base62_rejects_overflow() {
 #[tokio::test]
 async fn ids_with_future_timestamp_are_greater() {
     let gen = make_generator(0);
-    let base = relative_now();
+    let base = unix_now();
 
     let id1 = gen.next_id_with_timestamp(base).await;
     let id2 = gen.next_id_with_timestamp(base + 1).await;
@@ -265,13 +265,13 @@ async fn ids_with_future_timestamp_are_greater() {
 #[tokio::test]
 async fn ids_with_same_timestamp_have_same_sequence() {
     let gen = make_generator(0);
-    let base = relative_now();
+    let base = unix_now();
 
     let a = gen.next_id_with_timestamp(base).await;
     let b = gen.next_id_with_timestamp(base).await;
 
-    assert_eq!(a.timestamp(), base);
-    assert_eq!(b.timestamp(), base);
+    assert_eq!(a.timestamp(), base - EPOCH_MS);
+    assert_eq!(b.timestamp(), base - EPOCH_MS);
     assert_eq!(a.sequence(), b.sequence());
 }
 
@@ -369,15 +369,15 @@ async fn unique_ids_concurrent() {
 #[tokio::test]
 async fn next_id_with_timestamp_sets_exact_timestamp() {
     let gen = make_generator(0);
-    let now = relative_now();
+    let now = unix_now();
     let id = gen.next_id_with_timestamp(now).await;
-    assert_eq!(id.timestamp(), now);
+    assert_eq!(id.timestamp(), now - EPOCH_MS);
 }
 
 #[tokio::test]
 async fn next_id_with_timestamp_higher_now_gives_higher_id() {
     let gen = make_generator(0);
-    let base = relative_now();
+    let base = unix_now();
 
     let id0 = gen.next_id_with_timestamp(base).await;
     let id1 = gen.next_id_with_timestamp(base + 1).await;
@@ -390,7 +390,7 @@ async fn next_id_with_timestamp_higher_now_gives_higher_id() {
 #[tokio::test]
 async fn next_id_with_timestamp_past_timestamp_maintains_monotonicity() {
     let gen = make_generator(0);
-    let base = relative_now();
+    let base = unix_now();
 
     let id1 = gen.next_id_with_timestamp(base + 100).await;
     let id2 = gen.next_id_with_timestamp(base).await;
@@ -405,7 +405,7 @@ async fn next_id_with_timestamp_past_timestamp_maintains_monotonicity() {
 async fn next_id_with_timestamp_worker_id_preserved() {
     for worker_id in [0, 42, 1023] {
         let gen = make_generator(worker_id);
-        let base = relative_now();
+        let base = unix_now();
         let id = gen.next_id_with_timestamp(base).await;
         assert_eq!(id.worker_id(), worker_id);
     }
@@ -417,7 +417,7 @@ async fn next_id_with_timestamp_worker_id_preserved() {
 async fn sleeps_when_timestamp_far_ahead_of_window() {
     let window = Duration::from_millis(5);
     let gen = BeakIdGenerator::new(0, test_epoch(), window);
-    let base = relative_now();
+    let base = unix_now();
 
     let _ = gen.next_id_with_timestamp(base + 200).await;
 
@@ -433,7 +433,7 @@ async fn sleeps_when_timestamp_far_ahead_of_window() {
 async fn no_sleep_when_within_window() {
     let window = Duration::from_millis(500);
     let gen = BeakIdGenerator::new(0, test_epoch(), window);
-    let base = relative_now();
+    let base = unix_now();
 
     let _ = gen.next_id_with_timestamp(base + 50).await;
 
@@ -449,7 +449,7 @@ async fn no_sleep_when_within_window() {
 async fn sleeps_when_clock_goes_backwards_beyond_window() {
     let window = Duration::from_millis(5);
     let gen = BeakIdGenerator::new(0, test_epoch(), window);
-    let base = relative_now();
+    let base = unix_now();
 
     let _ = gen.next_id_with_timestamp(base + 100).await;
     let _ = gen.next_id_with_timestamp(base + 200).await;
@@ -543,4 +543,34 @@ async fn beakid_sort_unstable() {
     for i in 1..ids.len() {
         assert!(ids[i - 1] < ids[i]);
     }
+}
+
+// ========== Constructor validation ==========
+
+#[test]
+#[should_panic(expected = "worker_id")]
+fn rejects_worker_id_above_1023() {
+    BeakIdGenerator::new(1024, test_epoch(), Duration::from_secs(1));
+}
+
+#[test]
+#[should_panic(expected = "1970")]
+fn rejects_epoch_before_unix_epoch() {
+    BeakIdGenerator::new(
+        0,
+        UNIX_EPOCH - Duration::from_secs(1),
+        Duration::from_secs(1),
+    );
+}
+
+// ========== u64 conversion ==========
+
+#[test]
+fn to_u64_matches_raw_bits() {
+    let id = BeakId::from_base62("AzL8n0Y58m7").unwrap();
+    assert_eq!(id.raw(), i64::MAX);
+    assert_eq!(id.to_u64(), i64::MAX as u64);
+    assert_eq!(BeakId::from_base62("0").unwrap().to_u64(), 0u64);
+    assert_eq!(BeakId::from_u64(id.to_u64()), id);
+    assert_eq!(BeakId::from_u64(u64::MAX).raw(), -1);
 }

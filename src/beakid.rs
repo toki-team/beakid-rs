@@ -41,6 +41,14 @@ impl BeakId {
         self.0
     }
 
+    pub const fn to_u64(self) -> u64 {
+        self.0 as u64
+    }
+
+    pub const fn from_u64(value: u64) -> Self {
+        Self(value as i64)
+    }
+
     pub const fn timestamp(self) -> i64 {
         (self.0 >> TIMESTAMP_SHIFT) & TIMESTAMP_MASK
     }

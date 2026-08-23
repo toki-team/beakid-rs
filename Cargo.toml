@@ -1,6 +1,6 @@
 [package]
 name = "beakid"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 description = "Snowflake-like 64-bit unique ID generator with PostgreSQL BIGINT-friendly i64 IDs."
 rust-version = "1.75.0"
